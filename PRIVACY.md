@@ -1,7 +1,7 @@
 # Privacy Policy — Agent Boundary Watch
 
 **Effective:** November 7, 2026  
-**Applies to:** Agent Boundary Watch open-source Chrome extension v0.1 and v0.2.
+**Applies to:** Agent Boundary Watch open-source Chrome extension v0.1.
 
 Agent Boundary Watch performs a permission review **locally in your browser** when you explicitly click **Scan browser** and grant the optional Chrome `management` permission.
 

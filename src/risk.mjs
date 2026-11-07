@@ -42,13 +42,33 @@ export function isAgentCandidate(info) {
   return AGENT_TERMS.some((pattern) => pattern.test(name) || pattern.test(description));
 }
 
+/**
+ * Chrome ignores the path component of manifest host permissions.
+ * Classify effective web host coverage from scheme + hostname, not the path.
+ * Invalid/unsupported shapes are not silently promoted to broad exposure.
+ * File access is a distinct capability, not access to all web hosts.
+ */
 export function classifyHostPattern(pattern) {
   if (typeof pattern !== 'string') return 'none';
   const value = pattern.trim().toLowerCase();
-  if (value === '<all_urls>' || /^\*:\/\/\*\/\*$/.test(value)) return 'broad';
-  if (/^(https?|file|ftp):\/\/\*\/\*$/.test(value)) return 'broad';
-  if (/^\*:\/\/\*\.[^/]+\/\*$/.test(value)) return 'scoped';
-  return value.includes('://') ? 'scoped' : 'none';
+  if (value === '<all_urls>') return 'broad';
+
+  const match = /^(\*|https?|file):\/\/([^/]*)(\/.*)$/.exec(value);
+  if (!match) return 'none';
+  const [, scheme, authority] = match;
+
+  // File URLs have no web host; permission to access local files also
+  // requires separate browser/user authorization.
+  if (scheme === 'file') return authority === '' ? 'scoped' : 'none';
+
+  // Chrome match patterns allow an optional port. Do not let it hide
+  // wildcard-host coverage; distinguish it from a wildcard subdomain.
+  const hostPort = /^(\*|\*\.[a-z0-9.-]+|[a-z0-9.-]+|\[[a-f0-9:.]+\])(?::(\*|[0-9]{1,5}))?$/.exec(authority);
+  if (!hostPort) return 'none';
+  const host = hostPort[1];
+  if (host === '*') return 'broad';
+  if (host.startsWith('*.') && host.length > 2) return 'scoped';
+  return 'scoped';
 }
 
 function finding(id, severity, title, detail, recommendation, evidence = []) {
