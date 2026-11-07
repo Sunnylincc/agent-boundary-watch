@@ -8,7 +8,7 @@
 
 ## Install and try Phase 1
 
-Chrome Web Store publication is **Phase 2**. Until then, install the open-source build:
+The open-source v0.2.0 Chrome Web Store submission candidate is ready. Official Store review/publication is **pending developer account approval**. For now, install the open-source build:
 
 1. Download the latest ZIP from [GitHub Releases](https://github.com/Sunnylincc/agent-boundary-watch/releases), or clone the repository.
 2. Extract the ZIP to a folder. The extracted folder must contain `manifest.json` directly inside it.
@@ -48,14 +48,15 @@ npm test
 npm run pack
 ```
 
-The package script creates `dist/agent-boundary-watch-0.1.0.zip`, with the manifest at ZIP root. GitHub Actions runs tests and automatically publishes the release ZIP when the Phase 1 code lands on `main`.
+The package script creates `dist/agent-boundary-watch-0.1.0.zip`, with the manifest at ZIP root. GitHub Actions runs tests, validates the package and publishes **new versioned** GitHub releases without replacing old release assets.
 
 Source: `src/risk.mjs` (analysis), `src/report.mjs` (local export), `src/popup.mjs` (UI), `popup.html`, `styles.css`. Tests live in `tests/`.
 
 ## Roadmap
 
-Phase 2 is Chrome Web Store submission after manual Chrome testing, listing assets, privacy declarations, store developer registration and review. Phase 3 may add opt-in monitoring and paid team features **only** if reliable browser/agent audit sources can be integrated. See [Phase 2 plan](docs/PHASE_TWO.md).
+Phase 2 prepares the Chrome Web Store listing, test assets and a versioned submission package; final submission awaits the owner's developer-account verification and Google review. All components of v0.2 remain free, open-source and local-only. See [Phase 2 status](docs/PHASE_TWO.md), [Store listing](docs/STORE_LISTING.md) and [submission runbook](docs/STORE_SUBMISSION.md). Phase 3 may add opt-in monitoring and paid team features **only** if reliable browser/agent audit sources can be integrated.
 
 Contributions and security reports are welcome. Please avoid including real host permissions, browsing details, API keys or other private data in public issues.
 
 Released under the [MIT License](LICENSE).
+\n## Chrome Web Store submission candidate (v0.2.0)\n\nThe [v0.2.0 release](https://github.com/Sunnylincc/agent-boundary-watch/releases/tag/v0.2.0) contains the Store ZIP, a 440×280 promotional tile, the 128px store icon, a real first-run UI screenshot and a **labelled demo-data** results screenshot. The screenshots are made with the shipped popup HTML/CSS/JS and invented metadata only. The release does **not** mean Google has approved or published the extension. The developer account is still under review; see the [owner submission steps](docs/STORE_SUBMISSION.md).\n

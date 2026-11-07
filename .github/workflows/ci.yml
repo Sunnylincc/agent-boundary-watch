@@ -1,4 +1,4 @@
-name: Test and release extension
+name: Test and release Chrome extension
 
 on:
   pull_request:
@@ -16,18 +16,57 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run test suite
+      - name: Run security and unit tests
         run: npm test
-      - name: Assemble extension ZIP
+      - name: Assemble store submission ZIP
         run: npm run pack
-      - name: Verify ZIP structure
+      - name: Verify package manifest and ZIP entries
         run: |
-          unzip -t dist/agent-boundary-watch-0.1.0.zip
-          unzip -Z1 dist/agent-boundary-watch-0.1.0.zip | grep -Fx 'manifest.json'
+          VERSION=$(node -p "require('./package.json').version")
+          MANIFEST_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('manifest.json','utf8')).version")
+          test "$VERSION" = "$MANIFEST_VERSION"
+          unzip -t "dist/agent-boundary-watch-$VERSION.zip"
+          unzip -Z1 "dist/agent-boundary-watch-$VERSION.zip" | grep -Fx 'manifest.json'
+          test "$(unzip -Z1 "dist/agent-boundary-watch-$VERSION.zip" | wc -l)" -eq 9
+          if unzip -Z1 "dist/agent-boundary-watch-$VERSION.zip" | grep -Eq '(^|/)(\.env|PRIVACY|docs/|tests/|node_modules/|store-assets/)'; then
+            echo 'Unexpected non-runtime file in extension ZIP'; exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install developer-only asset tools
+        run: python -m pip install --disable-pip-version-check 'Pillow==11.3.0' 'playwright==1.56.0'
+      - name: Generate store promotional assets
+        run: python scripts/store_assets.py
+      - name: Capture real popup UI with labelled synthetic fixtures
+        run: python scripts/store_screenshots.py
+      - name: Validate store asset dimensions
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          expected = {
+            'promo-440x280.png': (440,280),
+            'store-icon-128.png': (128,128),
+            'first-run-640x400.png': (640,400),
+            'demo-results-640x400.png': (640,400),
+          }
+          for name, size in expected.items():
+            path = Path('dist/store-assets') / name
+            assert path.is_file(), f'Missing {path}'
+            with Image.open(path) as im:
+              assert im.size == size, f'{name}: {im.size} != {size}'
+            print(name, size)
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: chrome-extension-zip
-          path: dist/agent-boundary-watch-0.1.0.zip
+          path: dist/agent-boundary-watch-*.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chrome-store-assets
+          path: dist/store-assets/*.png
           if-no-files-found: error
 
   release:
@@ -37,19 +76,25 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: chrome-extension-zip
           path: dist
-      - name: Publish open-source v0.1.0 release
+      - uses: actions/download-artifact@v4
+        with:
+          name: chrome-store-assets
+          path: dist/store-assets
+      - name: Publish new version without mutating previous releases
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if gh release view v0.1.0 >/dev/null 2>&1; then
-            gh release upload v0.1.0 dist/agent-boundary-watch-0.1.0.zip --clobber
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('manifest.json','utf8')).version")
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists. Not overwriting immutable release assets."
           else
-            gh release create v0.1.0 dist/agent-boundary-watch-0.1.0.zip \
-              --title 'Agent Boundary Watch v0.1.0' \
-              --notes 'Phase 1: open-source, local-only Chrome extension permission exposure scanner. Download ZIP, extract, then load unpacked in Chrome. Chrome Web Store launch is planned for Phase 2.'
+            gh release create "v$VERSION" "dist/agent-boundary-watch-$VERSION.zip" dist/store-assets/*.png \
+              --title "Agent Boundary Watch v$VERSION" \
+              --notes "Chrome Web Store submission candidate: open-source, local-only permission scanner. Includes store artwork and clearly labelled demo-data UI screenshots. Developer verification and Store approval are separate and pending."
           fi

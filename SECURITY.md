@@ -4,7 +4,7 @@
 
 Please use GitHub's **Report a vulnerability** / private vulnerability reporting feature if it is enabled for this repository. Otherwise, open a minimal public issue without exploit details or secrets requesting a private contact channel. Do not include real browser reports, credentials, extension IDs, host lists or private data in public disclosures.
 
-## Phase 1 trust boundaries
+## Open-source v0.1–v0.2 trust boundaries
 
 - Runs as a local Manifest V3 extension.
 - Requires no `host_permissions`, content scripts, remote code, persistent background service workers, cloud APIs or API keys.
@@ -20,7 +20,7 @@ Flags are indicators of **declared capability exposure**, not definitive conclus
 
 ## Out of scope
 
-No desktop process or MCP scanner, browser traffic analyzer, runtime sandbox, malware engine, authorization enforcement or session inspection is included in Phase 1.
+No desktop process or MCP scanner, browser traffic analyzer, runtime sandbox, malware engine, authorization enforcement or session inspection is included in v0.1–v0.2.
 
 ## Supply chain and development
 
