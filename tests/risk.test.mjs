@@ -101,3 +101,58 @@ test('no broad runtime or session assertions in model', () => {
   assert.equal(Object.hasOwn(result, 'sessions'), false);
   assert.equal(Object.hasOwn(result.extensions[0], 'isCompromised'), false);
 });
+
+test('wildcard web hosts are broad regardless of path contents', () => {
+  const broad = [
+    'https://*/foo*',
+    'https://*/',
+    'https://*/*',
+    'http://*/admin',
+    '*://*/admin*',
+    '*://*/',
+    '*://*/*',
+    'https://*:*/different-path',
+    'http://*:8080/only-this-path',
+    '<all_urls>'
+  ];
+  for (const pattern of broad) {
+    assert.equal(classifyHostPattern(pattern), 'broad', pattern);
+    const result = analyzeExtension(extension({ hostPermissions: [pattern] }));
+    assert.equal(result.severity, 'high', pattern);
+    assert.equal(result.findings[0].id, 'broad-host-access', pattern);
+    assert.deepEqual(result.findings[0].evidence, [pattern], pattern);
+  }
+});
+
+test('restricted hostname and subdomain patterns remain scoped', () => {
+  const scoped = [
+    'https://example.com/',
+    'https://example.com/foo*',
+    'http://localhost/*',
+    'http://127.0.0.1/',
+    '*://mail.google.com/',
+    '*://*.example.com/foo*',
+    'https://*.example.com/*',
+    'https://*.example.com/',
+    'https://sub.example.com:8443/foo*',
+    'file:///foo*',
+    'file:///*'
+  ];
+  for (const pattern of scoped) {
+    assert.equal(classifyHostPattern(pattern), 'scoped', pattern);
+    const result = analyzeExtension(extension({ hostPermissions: [pattern] }));
+    assert.notEqual(result.severity, 'high', pattern);
+    assert.ok(!result.findings.some((f) => f.id === 'broad-host-access'), pattern);
+  }
+});
+
+test('invalid match patterns never gain fabricated broad access findings', () => {
+  const invalid = [
+    null, 17, '', 'https://*', 'https://*example.com/*',
+    'https://example.*/*', 'javascript://*/*', 'ftp://*/*',
+    'https://**/*', 'https://example.com:bad/*'
+  ];
+  for (const pattern of invalid) {
+    assert.equal(classifyHostPattern(pattern), 'none', String(pattern));
+  }
+});
